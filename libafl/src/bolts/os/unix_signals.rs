@@ -241,9 +241,9 @@ use libc::ssize_t;
 )))]
 pub use libc::ucontext_t;
 use libc::{
-    c_int, malloc, sigaction, sigaddset, sigaltstack, sigemptyset, stack_t, SA_NODEFER, SA_ONSTACK,
-    SA_SIGINFO, SIGABRT, SIGALRM, SIGBUS, SIGFPE, SIGHUP, SIGILL, SIGINT, SIGKILL, SIGPIPE,
-    SIGQUIT, SIGSEGV, SIGTERM, SIGTRAP, SIGUSR2,
+    c_int, malloc, sigaction, sigaddset, sigaltstack, sigemptyset, signal, stack_t, SA_NODEFER,
+    SA_ONSTACK, SA_SIGINFO, SIGABRT, SIGALRM, SIGBUS, SIGFPE, SIGHUP, SIGILL, SIGINT, SIGKILL,
+    SIGPIPE, SIGQUIT, SIGSEGV, SIGTERM, SIGTRAP, SIGTTIN, SIGTTOU, SIGUSR2, SIG_IGN,
 };
 pub use libc::{c_void, siginfo_t};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -289,6 +289,10 @@ pub enum Signal {
     SigInterrupt = SIGINT,
     /// `SIGTRAP` signal id
     SigTrap = SIGTRAP,
+    /// `SIGTTIN` signal id
+    SigTermIn = SIGTTIN,
+    /// `SIGTTOU` signal id
+    SigTermOut = SIGTTOU,
 }
 
 /// A list of crashing signals
@@ -328,6 +332,8 @@ impl Display for Signal {
             Signal::SigTerm => write!(f, "SIGTERM")?,
             Signal::SigInterrupt => write!(f, "SIGINT")?,
             Signal::SigTrap => write!(f, "SIGTRAP")?,
+            Signal::SigTermIn => write!(f, "SIGTTIN")?,
+            Signal::SigTermOut => write!(f, "SIGTTOU")?,
         };
 
         Ok(())
@@ -340,6 +346,10 @@ pub trait Handler {
     fn handle(&mut self, signal: Signal, info: siginfo_t, _context: &mut ucontext_t);
     /// Return a list of signals to handle
     fn signals(&self) -> Vec<Signal>;
+    /// Return a list of signals to ignore
+    fn ignore(&self) -> Vec<Signal> {
+        vec![Signal::SigTermIn, Signal::SigTermOut]
+    }
 }
 
 struct HandlerHolder {
@@ -424,6 +434,22 @@ pub unsafe fn setup_signal_handler<T: 'static + Handler>(handler: &mut T) -> Res
             return Err(Error::unknown(format!("Could not set up {sig} handler")));
         }
     }
+
+    sa.sa_sigaction = SIG_IGN;
+    for sig in handler.ignore() {
+        if sigaction(sig as i32, addr_of_mut!(sa), ptr::null_mut()) < 0 {
+            #[cfg(feature = "std")]
+            {
+                let err_str =
+                    CString::new(format!("Failed to setup {sig} ignore handler")).unwrap();
+                libc::perror(err_str.as_ptr());
+            }
+            return Err(Error::unknown(format!(
+                "Could not set up {sig} ignore handler"
+            )));
+        }
+    }
+
     compiler_fence(Ordering::SeqCst);
 
     Ok(())

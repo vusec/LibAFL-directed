@@ -686,7 +686,13 @@ mod unix_signal_handler {
                 Signal::SigIllegalInstruction,
                 Signal::SigSegmentationFault,
                 Signal::SigTrap,
+                Signal::SigTermIn,
+                Signal::SigTermOut,
             ]
+        }
+
+        fn ignore(&self) -> Vec<Signal> {
+            vec![]
         }
     }
 
@@ -1465,7 +1471,13 @@ impl Handler for InProcessForkExecutorGlobalData {
             Signal::SigIllegalInstruction,
             Signal::SigSegmentationFault,
             Signal::SigTrap,
+            Signal::SigTermIn,
+            Signal::SigTermOut,
         ]
+    }
+
+    fn ignore(&self) -> Vec<Signal> {
+        vec![]
     }
 }
 
