@@ -17,5 +17,5 @@ opt-level = 3
 
 [dependencies]
 libafl = { path = "../../libafl/", features = ["std", "derive"] }
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "~4.4", features = ["default"] }
 nix = "0.26"

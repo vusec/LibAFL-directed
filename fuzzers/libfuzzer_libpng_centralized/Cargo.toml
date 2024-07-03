@@ -23,7 +23,7 @@ libafl = { path = "../../libafl/", features = ["std", "derive", "rand_trait", "f
 libafl_targets = { path = "../../libafl_targets/", features = ["sancov_pcguard_hitcounts", "libfuzzer"] }
 # TODO Include it only when building cc
 libafl_cc = { path = "../../libafl_cc/" }
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "~4.4", features = ["default"] }
 mimalloc = { version = "*", default-features = false }
 env_logger = "0.10"
 
